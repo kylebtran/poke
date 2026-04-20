@@ -10,50 +10,44 @@ import type { Card as ScrydexCard } from '../scrydex/schemas.js';
 
 export const SCHEMA_ID = 'poke.card/v1';
 
-export const CardRecordPriceSchema = z
-  .object({
-    currency: z.string(),
-    market: z.number().nullable(),
-    low: z.number().nullable().optional(),
-    mid: z.number().nullable().optional(),
-    high: z.number().nullable().optional(),
-    source: z.string(),
-    fetched_at: z.string(),
-    stale: z.boolean().optional(),
-  })
-  .passthrough();
+export const CardRecordPriceSchema = z.object({
+  currency: z.string(),
+  market: z.number().nullable(),
+  low: z.number().nullable().optional(),
+  mid: z.number().nullable().optional(),
+  high: z.number().nullable().optional(),
+  source: z.string(),
+  fetched_at: z.string(),
+  stale: z.boolean().optional(),
+});
 
-export const CardRecordOwnedSchema = z
-  .object({
-    quantity: z.number().int().nonnegative(),
-    condition: z.string().default('NM'),
-    foil: z.boolean().default(false),
-    tags: z.array(z.string()).default([]),
-    owned_id: z.number().int().optional(),
-    note: z.string().optional(),
-    acquired_at: z.string().optional(),
-    acquired_price_cents: z.number().int().nullable().optional(),
-  })
-  .passthrough();
+export const CardRecordOwnedSchema = z.object({
+  quantity: z.number().int().nonnegative(),
+  condition: z.string().default('NM'),
+  foil: z.boolean().default(false),
+  tags: z.array(z.string()).default([]),
+  owned_id: z.number().int().optional(),
+  note: z.string().optional(),
+  acquired_at: z.string().optional(),
+  acquired_price_cents: z.number().int().nullable().optional(),
+});
 
-export const CardRecordSchema = z
-  .object({
-    _schema: z.literal(SCHEMA_ID),
-    id: z.string(),
-    name: z.string(),
-    name_en: z.string().optional(),
-    set_id: z.string(),
-    set_name: z.string().optional(),
-    lang: z.string(),
-    number: z.string().optional(),
-    rarity: z.string().optional(),
-    rarity_en: z.string().optional(),
-    tier: z.string().optional(),
-    artist: z.string().optional(),
-    owned: CardRecordOwnedSchema.optional(),
-    price: CardRecordPriceSchema.nullable().optional(),
-  })
-  .passthrough();
+export const CardRecordSchema = z.object({
+  _schema: z.literal(SCHEMA_ID),
+  id: z.string(),
+  name: z.string(),
+  name_en: z.string().optional(),
+  set_id: z.string(),
+  set_name: z.string().optional(),
+  lang: z.string(),
+  number: z.string().optional(),
+  rarity: z.string().optional(),
+  rarity_en: z.string().optional(),
+  tier: z.string().optional(),
+  artist: z.string().optional(),
+  owned: CardRecordOwnedSchema.optional(),
+  price: CardRecordPriceSchema.nullable().optional(),
+});
 
 export type CardRecord = z.infer<typeof CardRecordSchema>;
 

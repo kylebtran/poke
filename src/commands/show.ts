@@ -3,30 +3,31 @@ import { Writable } from 'node:stream';
 import { requireAuth } from '../config/settings.js';
 import { ScrydexClient } from '../scrydex/client.js';
 import { getCardById } from '../scrydex/cards.js';
-import { fromScrydex } from '../domain/card.js';
+import { fromScrydex, type CardRecord } from '../domain/card.js';
 import { openDatabase, type DB } from '../db/migrate.js';
 import { getCachedCard, putCachedCard, isStale, TTL } from '../db/cache.js';
 import { UserError } from '../errors.js';
+import { emit, type TableSpec } from '../io/emit.js';
+import { resolveMode } from '../io/tty.js';
 import type { Card } from '../scrydex/schemas.js';
 
 export interface ShowOptions {
   lang?: string;
-  /** Injected for tests. Falls back to a real client built from settings. */
   client?: ScrydexClient;
-  /** Injected for tests. Falls back to the on-disk DB. */
   db?: DB;
-  /** Injected for tests. Defaults to `process.stdout`. */
   out?: NodeJS.WritableStream | Writable;
-  /** Skip cache even if fresh (force refresh). */
   noCache?: boolean;
+  format?: string;
+  json?: boolean;
+  noColor?: boolean;
 }
 
 /**
- * `poke show <card-id>` — single card, full detail.
+ * `poke show <card-id>` — single card.
  *
- * Read-through cache: if the card is in SQLite and its `fetched_at` is
- * within `TTL.CARD_MS`, serve from the DB; otherwise fetch from Scrydex,
- * upsert, and return the fresh copy.
+ * For piped output (`ndjson` / `json-array`), we emit one CardRecord so
+ * downstream pipe commands can consume it. On a TTY we flip to a 2-column
+ * key/value table for readability. Both paths go through `emit()`.
  */
 export async function runShow(cardId: string, opts: ShowOptions = {}): Promise<void> {
   if (!cardId || cardId.length === 0) {
@@ -36,8 +37,27 @@ export async function runShow(cardId: string, opts: ShowOptions = {}): Promise<v
   try {
     const card = await resolveCard(db, cardId, opts);
     const record = fromScrydex(card);
+
     const out = opts.out ?? process.stdout;
-    out.write(JSON.stringify(record) + '\n');
+    const isTTY = Boolean((out as NodeJS.WriteStream).isTTY ?? process.stdout.isTTY);
+    const mode = resolveMode({ isTTY, format: opts.format, json: opts.json });
+
+    if (mode === 'table') {
+      const rows = toDetailRows(record);
+      await emit(rows, DETAIL_SPEC, {
+        out,
+        mode: 'table',
+        format: opts.format,
+        json: opts.json,
+        noColor: opts.noColor,
+      });
+    } else {
+      await emit([record], CARD_RECORD_PASSTHROUGH_SPEC, {
+        out,
+        mode,
+        noColor: opts.noColor,
+      });
+    }
   } finally {
     if (!opts.db) db.close();
   }
@@ -56,12 +76,60 @@ async function resolveCard(db: DB, cardId: string, opts: ShowOptions): Promise<C
   return card;
 }
 
+interface DetailRow {
+  field: string;
+  value: string;
+}
+
+const DETAIL_SPEC: TableSpec<DetailRow> = {
+  columns: [
+    { header: 'field', get: (r) => r.field, color: (_r, s, p) => p.label(s) },
+    { header: 'value', get: (r) => r.value },
+  ],
+};
+
+/**
+ * For non-table modes `emit` still runs through TableSpec machinery to
+ * pick between ndjson/json-array; we pass a dummy spec because columns
+ * are ignored in those modes.
+ */
+const CARD_RECORD_PASSTHROUGH_SPEC: TableSpec<Omit<CardRecord, 'owned' | 'price'>> = {
+  columns: [
+    { header: 'id', get: (r) => r.id },
+    { header: 'name', get: (r) => r.name },
+  ],
+};
+
+function toDetailRows(record: Omit<CardRecord, 'owned' | 'price'>): DetailRow[] {
+  const rows: DetailRow[] = [
+    { field: 'id', value: record.id },
+    { field: 'name', value: record.name },
+  ];
+  if (record.name_en) rows.push({ field: 'name_en', value: record.name_en });
+  rows.push({
+    field: 'set',
+    value: `${record.set_id}${record.set_name ? ` (${record.set_name})` : ''}`,
+  });
+  rows.push({ field: 'lang', value: record.lang });
+  if (record.number) rows.push({ field: 'number', value: record.number });
+  if (record.rarity) rows.push({ field: 'rarity', value: record.rarity });
+  if (record.rarity_en) rows.push({ field: 'rarity_en', value: record.rarity_en });
+  if (record.artist) rows.push({ field: 'artist', value: record.artist });
+  return rows;
+}
+
 export function registerShowCommand(program: Command): void {
   program
     .command('show <card-id>')
     .description('show full detail for one card by id')
     .option('--lang <code>', 'language scope (en|ja)')
-    .action(async (cardId: string, opts: { lang?: string }) => {
-      await runShow(cardId, { lang: opts.lang });
+    .action(async (cardId: string, opts: { lang?: string }, cmd: Command) => {
+      const globals = cmd.parent?.opts() ?? {};
+      await runShow(cardId, {
+        lang: opts.lang,
+        format: globals.format as string | undefined,
+        json: globals.json as boolean | undefined,
+        noColor: globals.color === false,
+      });
     });
 }
