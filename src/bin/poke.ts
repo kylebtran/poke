@@ -15,6 +15,7 @@ import { registerSortCommand } from '../commands/sort.js';
 import { registerSetsCommand } from '../commands/sets.js';
 import { registerSetCommand } from '../commands/set.js';
 import { registerProgressCommand } from '../commands/progress.js';
+import { registerValueCommand } from '../commands/value.js';
 
 function readPackageVersion(): string {
   try {
@@ -62,6 +63,7 @@ async function main(): Promise<void> {
   registerSetsCommand(program);
   registerSetCommand(program);
   registerProgressCommand(program);
+  registerValueCommand(program);
   try {
     await program.parseAsync(process.argv);
   } catch (err) {

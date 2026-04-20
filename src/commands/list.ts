@@ -5,10 +5,15 @@ import { listOwned, type ListFilters, type ListedOwnedRow } from '../db/collecti
 import { fromScrydex, type CardRecord } from '../domain/card.js';
 import { emit, type TableSpec } from '../io/emit.js';
 import type { Card } from '../scrydex/schemas.js';
+import { ScrydexClient } from '../scrydex/client.js';
+import { requireAuth } from '../config/settings.js';
+import { ensurePricesFresh, snapshotToRecordPrice } from '../scrydex/prices.js';
 
 export interface ListOptions extends ListFilters {
   withPrices?: boolean;
+  noRefresh?: boolean;
   db?: DB;
+  client?: ScrydexClient;
   out?: NodeJS.WritableStream | Writable;
   format?: string;
   json?: boolean;
@@ -29,11 +34,6 @@ export interface ListOptions extends ListFilters {
 export async function runList(opts: ListOptions = {}): Promise<void> {
   const db = opts.db ?? openDatabase();
   try {
-    if (opts.withPrices) {
-      process.stderr.write(
-        'warn: --with-prices has no effect yet (prices land in phase 8)\n',
-      );
-    }
     const filters: ListFilters = {};
     if (opts.set_id) filters.set_id = opts.set_id;
     if (opts.language) filters.language = opts.language;
@@ -42,6 +42,19 @@ export async function runList(opts: ListOptions = {}): Promise<void> {
     if (opts.tag) filters.tag = opts.tag;
     const rows = listOwned(db, filters);
     const records = rows.map(toRecord);
+
+    if (opts.withPrices && records.length > 0) {
+      const ids = Array.from(new Set(records.map((r) => r.id)));
+      const client =
+        opts.client ?? (opts.noRefresh ? null : new ScrydexClient(requireAuth()));
+      const prices = await ensurePricesFresh(db, client, ids, {
+        noRefresh: opts.noRefresh === true,
+      });
+      for (const rec of records) {
+        const snap = prices.get(rec.id) ?? null;
+        rec.price = snapshotToRecordPrice(snap);
+      }
+    }
 
     await emit(records, LIST_SPEC, {
       out: opts.out,
@@ -85,6 +98,12 @@ export const LIST_SPEC: TableSpec<CardRecord> = {
     { header: 'qty', get: (r) => r.owned?.quantity ?? 0, align: 'right' },
     { header: 'condition', get: (r) => r.owned?.condition ?? '' },
     { header: 'foil', get: (r) => (r.owned?.foil ? 'yes' : '') },
+    {
+      header: 'market',
+      align: 'right',
+      get: (r) => (r.price && r.price.market !== null ? `$${r.price.market.toFixed(2)}` : '—'),
+      color: (r, s, p) => (r.price?.stale ? p.muted(s) : s),
+    },
   ],
   empty: 'no owned cards match',
 };
@@ -98,7 +117,8 @@ export function registerListCommand(program: Command): void {
     .option('--tag <name>', 'filter by tag')
     .option('--rarity <name>', 'filter by exact rarity string')
     .option('--tier <name>', 'filter by rarity tier (common|uncommon|rare|ultra|secret|promo|unknown)')
-    .option('--with-prices', 'include latest price snapshot (phase 8+)')
+    .option('--with-prices', 'include latest price snapshot', false)
+    .option('--no-refresh', 'skip auto-refresh of stale prices')
     .action(
       async (
         opts: {
@@ -108,6 +128,7 @@ export function registerListCommand(program: Command): void {
           rarity?: string;
           tier?: string;
           withPrices?: boolean;
+          refresh?: boolean;
         },
         cmd: Command,
       ) => {
@@ -119,6 +140,7 @@ export function registerListCommand(program: Command): void {
           ...(opts.rarity !== undefined ? { rarity: opts.rarity } : {}),
           ...(opts.tier !== undefined ? { tier: opts.tier } : {}),
           ...(opts.withPrices !== undefined ? { withPrices: opts.withPrices } : {}),
+          noRefresh: opts.refresh === false,
           format: globals.format as string | undefined,
           json: globals.json as boolean | undefined,
           noColor: globals.color === false,
