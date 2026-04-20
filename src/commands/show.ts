@@ -10,6 +10,8 @@ import { UserError } from '../errors.js';
 import { emit, type TableSpec } from '../io/emit.js';
 import { resolveMode } from '../io/tty.js';
 import type { Card } from '../scrydex/schemas.js';
+import { DEFAULT_RARITY_TIERS, type Tier } from '../domain/rarity.js';
+import type { Palette } from '../ui/colors.js';
 
 export interface ShowOptions {
   lang?: string;
@@ -79,14 +81,38 @@ async function resolveCard(db: DB, cardId: string, opts: ShowOptions): Promise<C
 interface DetailRow {
   field: string;
   value: string;
+  tier?: Tier;
 }
 
 const DETAIL_SPEC: TableSpec<DetailRow> = {
   columns: [
     { header: 'field', get: (r) => r.field, color: (_r, s, p) => p.label(s) },
-    { header: 'value', get: (r) => r.value },
+    {
+      header: 'value',
+      get: (r) => r.value,
+      color: (r, s, p) => (r.field === 'rarity' && r.tier ? tierColor(r.tier, p)(s) : s),
+    },
   ],
 };
+
+function tierColor(tier: Tier, p: Palette): (s: string) => string {
+  switch (tier) {
+    case 'common':
+      return p.rarity.common;
+    case 'uncommon':
+      return p.rarity.uncommon;
+    case 'rare':
+      return p.rarity.rare;
+    case 'ultra':
+      return p.rarity.ultra;
+    case 'secret':
+      return p.rarity.secret;
+    case 'promo':
+      return p.rarity.promo;
+    default:
+      return p.rarity.unknown;
+  }
+}
 
 /**
  * For non-table modes `emit` still runs through TableSpec machinery to
@@ -112,7 +138,10 @@ function toDetailRows(record: Omit<CardRecord, 'owned' | 'price'>): DetailRow[] 
   });
   rows.push({ field: 'lang', value: record.lang });
   if (record.number) rows.push({ field: 'number', value: record.number });
-  if (record.rarity) rows.push({ field: 'rarity', value: record.rarity });
+  if (record.rarity) {
+    const tier = DEFAULT_RARITY_TIERS[record.lang]?.[record.rarity] ?? 'unknown';
+    rows.push({ field: 'rarity', value: record.rarity, tier });
+  }
   if (record.rarity_en) rows.push({ field: 'rarity_en', value: record.rarity_en });
   if (record.artist) rows.push({ field: 'artist', value: record.artist });
   return rows;

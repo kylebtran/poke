@@ -9,6 +9,13 @@ import { ScrydexClient } from '../scrydex/client.js';
 import { requireAuth } from '../config/settings.js';
 import { ensurePricesFresh, snapshotToRecordPrice } from '../scrydex/prices.js';
 import { tagsForOwnedIds } from '../db/tags.js';
+import type { Tier } from '../domain/rarity.js';
+import { DEFAULT_RARITY_TIERS } from '../domain/rarity.js';
+import type { Palette } from '../ui/colors.js';
+
+function guessTier(lang: string, rarity: string): Tier {
+  return DEFAULT_RARITY_TIERS[lang]?.[rarity] ?? 'unknown';
+}
 
 export interface ListOptions extends ListFilters {
   withPrices?: boolean;
@@ -19,6 +26,8 @@ export interface ListOptions extends ListFilters {
   format?: string;
   json?: boolean;
   noColor?: boolean;
+  /** Force-enable color regardless of TTY / env (used by tests). */
+  color?: boolean;
 }
 
 /**
@@ -69,6 +78,7 @@ export async function runList(opts: ListOptions = {}): Promise<void> {
       format: opts.format,
       json: opts.json,
       noColor: opts.noColor,
+      ...(opts.color !== undefined ? { color: opts.color } : {}),
     });
   } finally {
     if (!opts.db) db.close();
@@ -78,8 +88,14 @@ export async function runList(opts: ListOptions = {}): Promise<void> {
 export function toRecord(row: ListedOwnedRow): CardRecord {
   const card = JSON.parse(row.card_data) as Card;
   const base = fromScrydex(card);
+  // Tier is derived, not cached on cards table. We do a cheap lookup from
+  // the default map (no DB round-trip) — if the user has customized a
+  // rarity tier, `poke list --tier` filter handles it separately via
+  // the rarities table join in collection.ts.
+  const tier = card.rarity ? guessTier(card.language_code ?? base.lang, card.rarity) : undefined;
   return {
     ...base,
+    ...(tier ? { tier } : {}),
     owned: {
       quantity: row.quantity,
       condition: row.condition,
@@ -96,13 +112,36 @@ export function toRecord(row: ListedOwnedRow): CardRecord {
   };
 }
 
+function tierColorizer(tier: string | undefined, palette: Palette): (s: string) => string {
+  switch (tier as Tier | undefined) {
+    case 'common':
+      return palette.rarity.common;
+    case 'uncommon':
+      return palette.rarity.uncommon;
+    case 'rare':
+      return palette.rarity.rare;
+    case 'ultra':
+      return palette.rarity.ultra;
+    case 'secret':
+      return palette.rarity.secret;
+    case 'promo':
+      return palette.rarity.promo;
+    default:
+      return palette.rarity.unknown;
+  }
+}
+
 export const LIST_SPEC: TableSpec<CardRecord> = {
   columns: [
-    { header: 'id', get: (r) => r.id },
+    { header: 'id', get: (r) => r.id, color: (_r, s, p) => p.muted(s) },
     { header: 'name', get: (r) => r.name },
     { header: 'set', get: (r) => r.set_id },
-    { header: 'rarity', get: (r) => r.rarity ?? '' },
-    { header: 'lang', get: (r) => r.lang },
+    {
+      header: 'rarity',
+      get: (r) => r.rarity ?? '',
+      color: (r, s, p) => tierColorizer(r.tier, p)(s),
+    },
+    { header: 'lang', get: (r) => r.lang, color: (_r, s, p) => p.muted(s) },
     { header: 'qty', get: (r) => r.owned?.quantity ?? 0, align: 'right' },
     { header: 'condition', get: (r) => r.owned?.condition ?? '' },
     { header: 'foil', get: (r) => (r.owned?.foil ? 'yes' : '') },
@@ -110,7 +149,13 @@ export const LIST_SPEC: TableSpec<CardRecord> = {
       header: 'market',
       align: 'right',
       get: (r) => (r.price && r.price.market !== null ? `$${r.price.market.toFixed(2)}` : '—'),
-      color: (r, s, p) => (r.price?.stale ? p.muted(s) : s),
+      color: (r, s, p) => {
+        if (r.price === null || r.price?.market === null || r.price?.market === undefined) {
+          return p.muted(s);
+        }
+        if (r.price?.stale) return p.muted(s);
+        return s;
+      },
     },
   ],
   empty: 'no owned cards match',

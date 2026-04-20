@@ -18,6 +18,8 @@ export interface ProgressOptions {
   format?: string;
   json?: boolean;
   noColor?: boolean;
+  /** Force-enable color regardless of TTY / env (used by tests). */
+  color?: boolean;
 }
 
 /**
@@ -48,16 +50,27 @@ export async function runProgress(opts: ProgressOptions = {}): Promise<void> {
     const mode = resolveMode({ isTTY, format: opts.format, json: opts.json });
 
     if (mode === 'table') {
-      const colorEnabled = shouldColor({ isTTY, noColor: opts.noColor === true });
+      const colorEnabled =
+        opts.color ?? shouldColor({ isTTY, noColor: opts.noColor === true });
       const palette = paletteFor(colorEnabled);
       const bar = progressBar(progress.grand.owned, progress.grand.total);
       const pct = formatPercent(progress.grand.owned, progress.grand.total);
+      const pctNum =
+        progress.grand.total === 0 ? 0 : progress.grand.owned / progress.grand.total;
+      const colorBar =
+        pctNum >= 0.8
+          ? palette.success
+          : pctNum >= 0.4
+            ? palette.warn
+            : pctNum > 0
+              ? palette.error
+              : palette.muted;
       const keys = by === 'tier' ? sortedTierKeys(progress.totals) : Object.keys(progress.totals).sort();
       const segs = keys
         .map((k) => `${k} ${progress.totals[k]!.owned}/${progress.totals[k]!.total}`)
         .join(' · ');
       const line =
-        `${opts.set_id}  ${setName}  ${palette.bold(bar)}  ` +
+        `${opts.set_id}  ${setName}  ${colorBar(bar)}  ` +
         `${progress.grand.owned}/${progress.grand.total} (${pct})   ${palette.muted(segs)}`;
       out.write(line + '\n');
       return;
