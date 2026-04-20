@@ -10,6 +10,8 @@ import { registerShowCommand } from '../commands/show.js';
 import { registerAddCommand } from '../commands/add.js';
 import { registerRemoveCommand } from '../commands/remove.js';
 import { registerListCommand } from '../commands/list.js';
+import { registerFilterCommand } from '../commands/filter.js';
+import { registerSortCommand } from '../commands/sort.js';
 
 function readPackageVersion(): string {
   try {
@@ -52,6 +54,8 @@ async function main(): Promise<void> {
   registerAddCommand(program);
   registerRemoveCommand(program);
   registerListCommand(program);
+  registerFilterCommand(program);
+  registerSortCommand(program);
   try {
     await program.parseAsync(process.argv);
   } catch (err) {
