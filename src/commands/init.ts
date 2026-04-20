@@ -2,7 +2,8 @@ import { Command } from 'commander';
 import * as readline from 'node:readline/promises';
 import { stdin as input, stdout as output, stderr } from 'node:process';
 import { readFile, update, maskSecret } from '../config/settings.js';
-import { configFile } from '../config/paths.js';
+import { configFile, dbFile } from '../config/paths.js';
+import { openDatabase } from '../db/migrate.js';
 
 /**
  * `poke init` — interactive first-run bootstrap.
@@ -49,8 +50,11 @@ async function runInit(): Promise<void> {
     update(patch);
     stderr.write('wrote config.\n');
 
-    // Phase 3 will run DB migration here; phase 3 will also gate
-    // "pre-fetch set metadata?" behind a separate prompt.
+    // Run DB migrations (idempotent). Creating collection.db on first
+    // init means subsequent reads never have to check for its existence.
+    const db = openDatabase();
+    db.close();
+    stderr.write(`initialized database at ${dbFile()}\n`);
   } finally {
     rl.close();
   }

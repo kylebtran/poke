@@ -7,6 +7,8 @@ import { Writable } from 'node:stream';
 import { runShow } from '../../src/commands/show.js';
 import { ScrydexClient } from '../../src/scrydex/client.js';
 import { mockFetch } from '../helpers/mockFetch.js';
+import { openTestDb } from '../helpers/db.js';
+import { getCachedCard } from '../../src/db/cache.js';
 
 const BIN = join(process.cwd(), 'dist', 'bin', 'poke.js');
 
@@ -62,8 +64,9 @@ describe('runShow — programmatic', () => {
       fetch,
       baseUrl: 'https://api.example.test/pokemon/v1/',
     });
+    const db = openTestDb();
     const out = new BufferWritable();
-    await runShow('sv10_ja-1', { lang: 'ja', client, out });
+    await runShow('sv10_ja-1', { lang: 'ja', client, db, out });
     const line = out.text().trim();
     expect(line.endsWith('}')).toBe(true);
     const record = JSON.parse(line);
@@ -75,5 +78,23 @@ describe('runShow — programmatic', () => {
     expect(record.set_id).toBe('sv10_ja');
     expect(record.set_name).toBe('Mega Brave');
     expect(record.rarity).toBe('通常');
+    // Cache populated.
+    expect(getCachedCard(db, 'sv10_ja-1')).toBeDefined();
+  });
+
+  it('cache hit avoids a second network call', async () => {
+    const { fetch, calls } = mockFetch([
+      { match: '/cards/sv10_ja-1', fixture: 'card-sv10_ja-1.json' },
+    ]);
+    const client = new ScrydexClient({
+      api_key: 'k',
+      team_id: 't',
+      fetch,
+      baseUrl: 'https://api.example.test/pokemon/v1/',
+    });
+    const db = openTestDb();
+    await runShow('sv10_ja-1', { lang: 'ja', client, db, out: new BufferWritable() });
+    await runShow('sv10_ja-1', { lang: 'ja', client, db, out: new BufferWritable() });
+    expect(calls).toHaveLength(1);
   });
 });
