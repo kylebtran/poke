@@ -4,6 +4,8 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { exitCodeFor, PokeError } from '../errors.js';
+import { registerConfigCommand } from '../commands/config.js';
+import { registerInitCommand } from '../commands/init.js';
 
 function readPackageVersion(): string {
   try {
@@ -40,8 +42,8 @@ function shouldShowStack(argv: readonly string[]): boolean {
 
 async function main(): Promise<void> {
   const program = buildProgram();
-  // Commands attach themselves in later phases via registerCommands().
-  // For phase 0 we only wire --version/--help.
+  registerConfigCommand(program);
+  registerInitCommand(program);
   try {
     await program.parseAsync(process.argv);
   } catch (err) {
