@@ -9,6 +9,8 @@ import {
   type Settings,
 } from '../config/settings.js';
 import { configFile } from '../config/paths.js';
+import { openDatabase } from '../db/migrate.js';
+import { setUserTier, isTier } from '../domain/rarity.js';
 import { UserError } from '../errors.js';
 
 /**
@@ -53,22 +55,49 @@ export function registerConfigCommand(program: Command): void {
     });
 
   cmd
-    .command('set <key> <value>')
-    .description(`write a setting (keys: ${Array.from(WRITABLE_KEYS).join(', ')})`)
-    .action((key: string, value: string) => {
-      if (!WRITABLE_KEYS.has(key)) {
-        throw new UserError(`unknown config key '${key}'`, {
-          hint: `valid keys: ${Array.from(WRITABLE_KEYS).join(', ')}`,
-        });
-      }
-      const field = fieldForKey(key);
-      const coerced = coerceValue(field, value);
-      const patch = { [field]: coerced } as Settings;
-      update(patch);
-      // One-line confirmation to stderr so stdout stays silent for
-      // scripted use (`poke config set api-key $KEY > /dev/null` ok).
-      process.stderr.write(`${key} set\n`);
-    });
+    .command('set <key> <value> [extra]')
+    .description(
+      `write a setting (keys: ${Array.from(WRITABLE_KEYS).join(', ')}, rarity-tier)`,
+    )
+    .option('--lang <code>', 'language for rarity-tier entries', 'en')
+    .action(
+      (
+        key: string,
+        value: string,
+        extra: string | undefined,
+        opts: { lang?: string },
+      ) => {
+        if (key === 'rarity-tier') {
+          // Form: poke config set rarity-tier "<rarity>" <tier> [--lang en|ja]
+          if (!extra) {
+            throw new UserError(`usage: poke config set rarity-tier <rarity> <tier>`);
+          }
+          if (!isTier(extra)) {
+            throw new UserError(`invalid tier '${extra}'`, {
+              hint: 'tiers: common|uncommon|rare|ultra|secret|promo|unknown',
+            });
+          }
+          const db = openDatabase();
+          try {
+            setUserTier(db, opts.lang ?? 'en', value, extra);
+            process.stderr.write(`rarity-tier[${opts.lang ?? 'en'}/${value}] = ${extra}\n`);
+          } finally {
+            db.close();
+          }
+          return;
+        }
+        if (!WRITABLE_KEYS.has(key)) {
+          throw new UserError(`unknown config key '${key}'`, {
+            hint: `valid keys: ${Array.from(WRITABLE_KEYS).join(', ')}, rarity-tier`,
+          });
+        }
+        const field = fieldForKey(key);
+        const coerced = coerceValue(field, value);
+        const patch = { [field]: coerced } as Settings;
+        update(patch);
+        process.stderr.write(`${key} set\n`);
+      },
+    );
 }
 
 function toCliKey(field: keyof Settings): string {
