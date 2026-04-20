@@ -46,13 +46,15 @@ export function computeProgress(
 
   // Owned distinct ids.
   const ownedIds = new Set(
-    (db
-      .prepare(
-        `SELECT DISTINCT o.card_id FROM owned_cards o
+    (
+      db
+        .prepare(
+          `SELECT DISTINCT o.card_id FROM owned_cards o
            JOIN cards c ON c.id = o.card_id
            WHERE c.set_id = ?`,
-      )
-      .all(opts.set_id) as { card_id: string }[]).map((r) => r.card_id),
+        )
+        .all(opts.set_id) as { card_id: string }[]
+    ).map((r) => r.card_id),
   );
 
   for (const c of cards) {
@@ -72,13 +74,13 @@ export function computeProgress(
 }
 
 export function languageOfSet(db: DB, set_id: string): string {
-  const s = db
-    .prepare(`SELECT language_code FROM sets WHERE id = ?`)
-    .get(set_id) as { language_code: string } | undefined;
+  const s = db.prepare(`SELECT language_code FROM sets WHERE id = ?`).get(set_id) as
+    | { language_code: string }
+    | undefined;
   if (s) return s.language_code;
-  const c = db
-    .prepare(`SELECT language_code FROM cards WHERE set_id = ? LIMIT 1`)
-    .get(set_id) as { language_code: string } | undefined;
+  const c = db.prepare(`SELECT language_code FROM cards WHERE set_id = ? LIMIT 1`).get(set_id) as
+    | { language_code: string }
+    | undefined;
   if (c) return c.language_code;
   if (set_id.endsWith('_ja')) return 'ja';
   return 'en';

@@ -28,13 +28,14 @@ export function getTagId(db: DB, name: string): number | undefined {
 export function addTagToOwnedByCardId(db: DB, card_id: string, tag: string): number {
   const tx = db.transaction((): number => {
     const tagId = upsertTag(db, tag);
-    const rows = db
-      .prepare(`SELECT id FROM owned_cards WHERE card_id = ?`)
-      .all(card_id) as { id: number }[];
+    const rows = db.prepare(`SELECT id FROM owned_cards WHERE card_id = ?`).all(card_id) as {
+      id: number;
+    }[];
     for (const r of rows) {
-      db.prepare(
-        `INSERT OR IGNORE INTO owned_tags (owned_id, tag_id) VALUES (?, ?)`,
-      ).run(r.id, tagId);
+      db.prepare(`INSERT OR IGNORE INTO owned_tags (owned_id, tag_id) VALUES (?, ?)`).run(
+        r.id,
+        tagId,
+      );
     }
     return rows.length;
   });
@@ -44,9 +45,10 @@ export function addTagToOwnedByCardId(db: DB, card_id: string, tag: string): num
 export function addTagToOwnedById(db: DB, owned_id: number, tag: string): void {
   const tx = db.transaction(() => {
     const tagId = upsertTag(db, tag);
-    db.prepare(
-      `INSERT OR IGNORE INTO owned_tags (owned_id, tag_id) VALUES (?, ?)`,
-    ).run(owned_id, tagId);
+    db.prepare(`INSERT OR IGNORE INTO owned_tags (owned_id, tag_id) VALUES (?, ?)`).run(
+      owned_id,
+      tagId,
+    );
   });
   tx();
 }
@@ -67,10 +69,7 @@ export function removeTagFromOwnedByCardId(db: DB, card_id: string, tag: string)
 export function removeTagFromOwnedById(db: DB, owned_id: number, tag: string): void {
   const tagId = getTagId(db, tag);
   if (tagId === undefined) return;
-  db.prepare(`DELETE FROM owned_tags WHERE owned_id = ? AND tag_id = ?`).run(
-    owned_id,
-    tagId,
-  );
+  db.prepare(`DELETE FROM owned_tags WHERE owned_id = ? AND tag_id = ?`).run(owned_id, tagId);
 }
 
 export function tagsForCardId(db: DB, card_id: string): string[] {

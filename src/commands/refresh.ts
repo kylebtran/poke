@@ -58,8 +58,9 @@ export async function runRefresh(opts: RefreshOptions = {}): Promise<void> {
 
 function idsToRefresh(db: DB, opts: RefreshOptions): string[] {
   if (opts.set) {
-    const rows = db.prepare(`SELECT id FROM cards WHERE set_id = ?`).all(opts.set) as
-      | { id: string }[];
+    const rows = db.prepare(`SELECT id FROM cards WHERE set_id = ?`).all(opts.set) as {
+      id: string;
+    }[];
     return rows.map((r) => r.id);
   }
   return listOwnedCardIds(db);

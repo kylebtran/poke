@@ -44,7 +44,11 @@ describe('runSort', () => {
     const stdin = stream(mk('a', 20, 'A'), mk('b', 10, 'B'), mk('c', 30, 'C'));
     const out = new Buf();
     await runSort({ by: 'price.market', stdin, out, format: 'ndjson' });
-    const ids = out.text().trim().split('\n').map((l) => JSON.parse(l).id);
+    const ids = out
+      .text()
+      .trim()
+      .split('\n')
+      .map((l) => JSON.parse(l).id);
     expect(ids).toEqual(['b', 'a', 'c']);
   });
 
@@ -52,7 +56,11 @@ describe('runSort', () => {
     const stdin = stream(mk('a', 20, 'A'), mk('b', 10, 'B'));
     const out = new Buf();
     await runSort({ by: 'price.market', desc: true, stdin, out, format: 'ndjson' });
-    const ids = out.text().trim().split('\n').map((l) => JSON.parse(l).id);
+    const ids = out
+      .text()
+      .trim()
+      .split('\n')
+      .map((l) => JSON.parse(l).id);
     expect(ids).toEqual(['a', 'b']);
   });
 
@@ -60,7 +68,11 @@ describe('runSort', () => {
     const stdin = stream(mk('a', 20, 'A'), mk('b', null, 'B'), mk('c', 10, 'C'));
     const out = new Buf();
     await runSort({ by: 'price.market', stdin, out, format: 'ndjson' });
-    const ids = out.text().trim().split('\n').map((l) => JSON.parse(l).id);
+    const ids = out
+      .text()
+      .trim()
+      .split('\n')
+      .map((l) => JSON.parse(l).id);
     expect(ids).toEqual(['c', 'a', 'b']);
   });
 
@@ -68,7 +80,11 @@ describe('runSort', () => {
     const stdin = stream(mk('a', 10, 'banana'), mk('b', 10, 'apple'));
     const out = new Buf();
     await runSort({ by: 'name', stdin, out, format: 'ndjson' });
-    const names = out.text().trim().split('\n').map((l) => JSON.parse(l).name);
+    const names = out
+      .text()
+      .trim()
+      .split('\n')
+      .map((l) => JSON.parse(l).name);
     expect(names).toEqual(['apple', 'banana']);
   });
 });

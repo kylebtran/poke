@@ -27,7 +27,10 @@ export async function runExport(opts: ExportOptions = {}): Promise<string> {
   const db = opts.db ?? openDatabase();
   try {
     const rows = listOwned(db);
-    const tagMap = tagsForOwnedIds(db, rows.map((r) => r.id));
+    const tagMap = tagsForOwnedIds(
+      db,
+      rows.map((r) => r.id),
+    );
     const out: string[][] = [Array.from(HEADERS)];
     for (const r of rows) {
       out.push([

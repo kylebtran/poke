@@ -53,7 +53,10 @@ export async function runList(opts: ListOptions = {}): Promise<void> {
     const rows = listOwned(db, filters);
     const records = rows.map(toRecord);
     // Populate tags in a single round-trip.
-    const tagMap = tagsForOwnedIds(db, rows.map((r) => r.id));
+    const tagMap = tagsForOwnedIds(
+      db,
+      rows.map((r) => r.id),
+    );
     for (const rec of records) {
       if (rec.owned?.owned_id !== undefined) {
         rec.owned.tags = tagMap.get(rec.owned.owned_id) ?? [];
@@ -62,8 +65,7 @@ export async function runList(opts: ListOptions = {}): Promise<void> {
 
     if (opts.withPrices && records.length > 0) {
       const ids = Array.from(new Set(records.map((r) => r.id)));
-      const client =
-        opts.client ?? (opts.noRefresh ? null : new ScrydexClient(requireAuth()));
+      const client = opts.client ?? (opts.noRefresh ? null : new ScrydexClient(requireAuth()));
       const prices = await ensurePricesFresh(db, client, ids, {
         noRefresh: opts.noRefresh === true,
       });
@@ -169,7 +171,10 @@ export function registerListCommand(program: Command): void {
     .option('--lang <code>', 'filter by language (en|ja)')
     .option('--tag <name>', 'filter by tag')
     .option('--rarity <name>', 'filter by exact rarity string')
-    .option('--tier <name>', 'filter by rarity tier (common|uncommon|rare|ultra|secret|promo|unknown)')
+    .option(
+      '--tier <name>',
+      'filter by rarity tier (common|uncommon|rare|ultra|secret|promo|unknown)',
+    )
     .option('--with-prices', 'include latest price snapshot', false)
     .option('--no-refresh', 'skip auto-refresh of stale prices')
     .action(

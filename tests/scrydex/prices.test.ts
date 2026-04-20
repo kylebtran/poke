@@ -45,9 +45,9 @@ describe('ensurePricesFresh', () => {
     const snap = result.get('sv4-1')!;
     expect(snap.market_cents).toBe(1000);
     // Persisted.
-    const row = db.prepare(`SELECT raw_market_cents FROM price_snapshots WHERE card_id = ?`).get('sv4-1') as
-      | { raw_market_cents: number }
-      | undefined;
+    const row = db
+      .prepare(`SELECT raw_market_cents FROM price_snapshots WHERE card_id = ?`)
+      .get('sv4-1') as { raw_market_cents: number } | undefined;
     expect(row?.raw_market_cents).toBe(1000);
   });
 
@@ -118,9 +118,7 @@ describe('ensurePricesFresh', () => {
       set: { id: 'sv4', language_code: 'en' },
       prices: { currency: 'USD', source: 'tcgplayer' },
     };
-    const { fetch } = mockFetch([
-      { match: '/cards?q=', body: { data: [withoutMarket] } },
-    ]);
+    const { fetch } = mockFetch([{ match: '/cards?q=', body: { data: [withoutMarket] } }]);
     const result = await ensurePricesFresh(db, makeClient(fetch), ['sv4-1']);
     expect(result.get('sv4-1')!.market_cents).toBeNull();
   });

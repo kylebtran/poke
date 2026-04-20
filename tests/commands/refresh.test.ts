@@ -40,9 +40,7 @@ describe('runRefresh', () => {
       addOwned(db, { card_id: c.id });
       cards.push(c);
     }
-    const { fetch, calls } = mockFetch([
-      { match: '/cards?q=', body: { data: cards } },
-    ]);
+    const { fetch, calls } = mockFetch([{ match: '/cards?q=', body: { data: cards } }]);
     const client = new ScrydexClient({
       api_key: 'k',
       team_id: 't',

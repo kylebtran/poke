@@ -17,19 +17,11 @@ describe('migrations', () => {
   it('creates all expected tables on a fresh memory DB', () => {
     const db = openDatabase({ path: ':memory:', walMode: false });
     const tables = db
-      .prepare(
-        `SELECT name FROM sqlite_master WHERE type='table' ORDER BY name`,
-      )
+      .prepare(`SELECT name FROM sqlite_master WHERE type='table' ORDER BY name`)
       .all() as { name: string }[];
     const names = tables.map((t) => t.name);
     expect(names).toEqual(
-      expect.arrayContaining([
-        'cards',
-        'price_snapshots',
-        'rarities',
-        'schema_version',
-        'sets',
-      ]),
+      expect.arrayContaining(['cards', 'price_snapshots', 'rarities', 'schema_version', 'sets']),
     );
   });
 
@@ -50,9 +42,7 @@ describe('migrations', () => {
     const d1 = openDatabase({ path, walMode: false });
     d1.close();
     const d2 = openDatabase({ path, walMode: false });
-    const rows = d2
-      .prepare(`SELECT version FROM schema_version`)
-      .all() as { version: number }[];
+    const rows = d2.prepare(`SELECT version FROM schema_version`).all() as { version: number }[];
     expect(rows).toHaveLength(1);
     expect(rows[0]!.version).toBe(CURRENT_VERSION);
     d2.close();

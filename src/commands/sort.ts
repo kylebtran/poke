@@ -42,7 +42,9 @@ export async function runSort(opts: SortOptions): Promise<void> {
     buffer.push(record);
   }
 
-  buffer.sort((a, b) => compare(resolveField(a, opts.by), resolveField(b, opts.by), opts.desc === true));
+  buffer.sort((a, b) =>
+    compare(resolveField(a, opts.by), resolveField(b, opts.by), opts.desc === true),
+  );
 
   await emit(buffer, LIST_SPEC as TableSpec<CardRecord>, {
     out: opts.out,

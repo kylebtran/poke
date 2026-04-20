@@ -21,6 +21,7 @@ import { registerSearchCommand } from '../commands/search.js';
 import { registerImportCommand } from '../commands/import.js';
 import { registerExportCommand } from '../commands/export.js';
 import { registerRefreshCommand } from '../commands/refresh.js';
+import { registerHelpCommand } from '../commands/help.js';
 
 function readPackageVersion(): string {
   try {
@@ -74,6 +75,7 @@ async function main(): Promise<void> {
   registerImportCommand(program);
   registerExportCommand(program);
   registerRefreshCommand(program);
+  registerHelpCommand(program);
   try {
     await program.parseAsync(process.argv);
   } catch (err) {

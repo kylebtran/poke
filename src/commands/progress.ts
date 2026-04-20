@@ -50,13 +50,11 @@ export async function runProgress(opts: ProgressOptions = {}): Promise<void> {
     const mode = resolveMode({ isTTY, format: opts.format, json: opts.json });
 
     if (mode === 'table') {
-      const colorEnabled =
-        opts.color ?? shouldColor({ isTTY, noColor: opts.noColor === true });
+      const colorEnabled = opts.color ?? shouldColor({ isTTY, noColor: opts.noColor === true });
       const palette = paletteFor(colorEnabled);
       const bar = progressBar(progress.grand.owned, progress.grand.total);
       const pct = formatPercent(progress.grand.owned, progress.grand.total);
-      const pctNum =
-        progress.grand.total === 0 ? 0 : progress.grand.owned / progress.grand.total;
+      const pctNum = progress.grand.total === 0 ? 0 : progress.grand.owned / progress.grand.total;
       const colorBar =
         pctNum >= 0.8
           ? palette.success
@@ -65,7 +63,8 @@ export async function runProgress(opts: ProgressOptions = {}): Promise<void> {
             : pctNum > 0
               ? palette.error
               : palette.muted;
-      const keys = by === 'tier' ? sortedTierKeys(progress.totals) : Object.keys(progress.totals).sort();
+      const keys =
+        by === 'tier' ? sortedTierKeys(progress.totals) : Object.keys(progress.totals).sort();
       const segs = keys
         .map((k) => `${k} ${progress.totals[k]!.owned}/${progress.totals[k]!.total}`)
         .join(' · ');
@@ -137,23 +136,18 @@ export function registerProgressCommand(program: Command): void {
     .option('--set <id>', 'set id')
     .option('--lang <code>', 'language scope (en|ja)')
     .option('--by <mode>', 'group by: rarity|tier', 'rarity')
-    .action(
-      async (
-        opts: { set?: string; lang?: string; by?: string },
-        cmd: Command,
-      ) => {
-        const globals = cmd.parent?.opts() ?? {};
-        if (opts.by && opts.by !== 'rarity' && opts.by !== 'tier') {
-          throw new UserError(`--by must be rarity|tier (got '${opts.by}')`);
-        }
-        await runProgress({
-          ...(opts.set !== undefined ? { set_id: opts.set } : {}),
-          ...(opts.lang !== undefined ? { lang: opts.lang } : {}),
-          by: (opts.by as 'rarity' | 'tier' | undefined) ?? 'rarity',
-          format: globals.format as string | undefined,
-          json: globals.json as boolean | undefined,
-          noColor: globals.color === false,
-        });
-      },
-    );
+    .action(async (opts: { set?: string; lang?: string; by?: string }, cmd: Command) => {
+      const globals = cmd.parent?.opts() ?? {};
+      if (opts.by && opts.by !== 'rarity' && opts.by !== 'tier') {
+        throw new UserError(`--by must be rarity|tier (got '${opts.by}')`);
+      }
+      await runProgress({
+        ...(opts.set !== undefined ? { set_id: opts.set } : {}),
+        ...(opts.lang !== undefined ? { lang: opts.lang } : {}),
+        by: (opts.by as 'rarity' | 'tier' | undefined) ?? 'rarity',
+        format: globals.format as string | undefined,
+        json: globals.json as boolean | undefined,
+        noColor: globals.color === false,
+      });
+    });
 }

@@ -38,25 +38,22 @@ describe('configDir()', () => {
 
   it('uses XDG_CONFIG_HOME on unix when set', () => {
     Object.defineProperty(process, 'platform', { value: 'linux' });
-    withEnv(
-      { POKE_CONFIG_DIR: undefined, XDG_CONFIG_HOME: '/xdg' },
-      () => expect(configDir()).toBe('/xdg/poke'),
+    withEnv({ POKE_CONFIG_DIR: undefined, XDG_CONFIG_HOME: '/xdg' }, () =>
+      expect(configDir()).toBe('/xdg/poke'),
     );
   });
 
   it('falls back to ~/.config/poke on unix without XDG', () => {
     Object.defineProperty(process, 'platform', { value: 'linux' });
-    withEnv(
-      { POKE_CONFIG_DIR: undefined, XDG_CONFIG_HOME: undefined, HOME: '/home/tester' },
-      () => expect(configDir()).toBe('/home/tester/.config/poke'),
+    withEnv({ POKE_CONFIG_DIR: undefined, XDG_CONFIG_HOME: undefined, HOME: '/home/tester' }, () =>
+      expect(configDir()).toBe('/home/tester/.config/poke'),
     );
   });
 
   it('uses APPDATA on windows', () => {
     Object.defineProperty(process, 'platform', { value: 'win32' });
-    withEnv(
-      { POKE_CONFIG_DIR: undefined, APPDATA: 'C:\\Users\\t\\AppData\\Roaming' },
-      () => expect(configDir()).toBe('C:\\Users\\t\\AppData\\Roaming/poke'),
+    withEnv({ POKE_CONFIG_DIR: undefined, APPDATA: 'C:\\Users\\t\\AppData\\Roaming' }, () =>
+      expect(configDir()).toBe('C:\\Users\\t\\AppData\\Roaming/poke'),
     );
   });
 });

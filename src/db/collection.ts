@@ -243,8 +243,8 @@ export function listOwned(db: DB, filters: ListFilters = {}): ListedOwnedRow[] {
 }
 
 export function listOwnedCardIds(db: DB): string[] {
-  const rows = db
-    .prepare(`SELECT DISTINCT card_id FROM owned_cards ORDER BY card_id`)
-    .all() as { card_id: string }[];
+  const rows = db.prepare(`SELECT DISTINCT card_id FROM owned_cards ORDER BY card_id`).all() as {
+    card_id: string;
+  }[];
   return rows.map((r) => r.card_id);
 }

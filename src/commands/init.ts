@@ -35,11 +35,7 @@ async function runInit(): Promise<void> {
       'Scrydex API key',
       current.api_key ? maskSecret(current.api_key) : undefined,
     );
-    const teamId = await promptPlain(
-      rl,
-      'Scrydex Team ID',
-      current.team_id ?? undefined,
-    );
+    const teamId = await promptPlain(rl, 'Scrydex Team ID', current.team_id ?? undefined);
 
     // Only persist keys the user actually supplied. An empty response on
     // a prompt with a default preserves the existing value.

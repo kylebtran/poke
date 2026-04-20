@@ -40,7 +40,11 @@ const VALUE_SPEC: TableSpec<ValueRecord> = {
   columns: [
     { header: 'group', get: (r) => r.group },
     { header: 'cards', get: (r) => r.n_cards, align: 'right' },
-    { header: 'unavailable', get: (r) => (r.unavailable === 0 ? '' : r.unavailable), align: 'right' },
+    {
+      header: 'unavailable',
+      get: (r) => (r.unavailable === 0 ? '' : r.unavailable),
+      align: 'right',
+    },
     {
       header: 'total',
       align: 'right',
@@ -113,7 +117,10 @@ async function collect(db: DB, opts: ValueOptions): Promise<CardRecord[]> {
   return await readFromDb(db, opts);
 }
 
-async function readStdinRecords(stdin: Readable, stderr: NodeJS.WritableStream): Promise<CardRecord[]> {
+async function readStdinRecords(
+  stdin: Readable,
+  stderr: NodeJS.WritableStream,
+): Promise<CardRecord[]> {
   const out: CardRecord[] = [];
   let malformed = 0;
   for await (const line of readLines(stdin)) {
@@ -191,10 +198,7 @@ export function registerValueCommand(program: Command): void {
     .option('--group-by <mode>', 'group totals by: set|rarity|tag')
     .option('--no-refresh', 'skip auto-refresh of stale prices')
     .action(
-      async (
-        opts: { total?: boolean; groupBy?: string; refresh?: boolean },
-        cmd: Command,
-      ) => {
+      async (opts: { total?: boolean; groupBy?: string; refresh?: boolean }, cmd: Command) => {
         const globals = cmd.parent?.opts() ?? {};
         if (opts.groupBy && !['set', 'rarity', 'tag'].includes(opts.groupBy)) {
           throw new UserError(`--group-by must be set|rarity|tag (got '${opts.groupBy}')`);

@@ -19,9 +19,7 @@ class Buf extends Writable {
 describe('runSearch', () => {
   it('forwards query verbatim', async () => {
     const db = openTestDb();
-    const { fetch, calls } = mockFetch([
-      { match: '/cards?', fixture: 'cards-search-sv4.json' },
-    ]);
+    const { fetch, calls } = mockFetch([{ match: '/cards?', fixture: 'cards-search-sv4.json' }]);
     const client = new ScrydexClient({
       api_key: 'k',
       team_id: 't',

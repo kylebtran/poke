@@ -53,8 +53,7 @@ export async function emit<T>(
 ): Promise<void> {
   const out = opts.out ?? process.stdout;
   const isTTY = Boolean((out as NodeJS.WriteStream).isTTY ?? process.stdout.isTTY);
-  const mode =
-    opts.mode ?? resolveMode({ isTTY, format: opts.format, json: opts.json });
+  const mode = opts.mode ?? resolveMode({ isTTY, format: opts.format, json: opts.json });
   const colorEnabled = opts.color ?? shouldColor({ isTTY, noColor: opts.noColor });
   const palette = paletteFor(colorEnabled);
 

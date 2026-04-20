@@ -59,11 +59,7 @@ export type CardRecord = z.infer<typeof CardRecordSchema>;
 export function fromScrydex(card: ScrydexCard): Omit<CardRecord, 'owned' | 'price'> {
   const setId = card.set?.id ?? card.set_id ?? inferSetIdFromCardId(card.id);
   const setName = card.set?.name;
-  const lang =
-    card.language_code ??
-    card.set?.language_code ??
-    inferLangFromSetId(setId) ??
-    'en';
+  const lang = card.language_code ?? card.set?.language_code ?? inferLangFromSetId(setId) ?? 'en';
   const record: Omit<CardRecord, 'owned' | 'price'> = {
     _schema: SCHEMA_ID,
     id: card.id,

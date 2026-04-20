@@ -41,7 +41,8 @@ export function mockFetch(routes: MockRoute[]): MockFetchResult {
   const routeState = routes.map((r) => ({ ...r }));
 
   const fn: typeof fetch = async (input, init) => {
-    const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
+    const url =
+      typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
     calls.push({ url, init });
     for (const route of routeState) {
       if (!url.includes(route.match)) continue;

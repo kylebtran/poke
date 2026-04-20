@@ -60,7 +60,11 @@ describe('poke progress', () => {
     const db = seed();
     const out = new Buf();
     await runProgress({ set_id: 'sv4', db, out, format: 'ndjson' });
-    const records = out.text().trim().split('\n').map((l) => JSON.parse(l));
+    const records = out
+      .text()
+      .trim()
+      .split('\n')
+      .map((l) => JSON.parse(l));
     expect(records).toHaveLength(3);
     for (const r of records) {
       expect(r._schema).toBe('poke.progress/v1');
@@ -72,7 +76,11 @@ describe('poke progress', () => {
     const db = seed();
     const out = new Buf();
     await runProgress({ set_id: 'sv4', db, out, by: 'tier', format: 'ndjson' });
-    const records = out.text().trim().split('\n').map((l) => JSON.parse(l));
+    const records = out
+      .text()
+      .trim()
+      .split('\n')
+      .map((l) => JSON.parse(l));
     const byKey = Object.fromEntries(records.map((r) => [r.key, r]));
     expect(byKey.common.owned).toBe(1);
     expect(byKey.rare.owned).toBe(0);
@@ -85,7 +93,11 @@ describe('poke set', () => {
     const db = seed();
     const out = new Buf();
     await runSet('sv4', { db, out, format: 'ndjson' });
-    const records = out.text().trim().split('\n').map((l) => JSON.parse(l));
+    const records = out
+      .text()
+      .trim()
+      .split('\n')
+      .map((l) => JSON.parse(l));
     expect(records).toHaveLength(3);
     for (const r of records) {
       expect(r._schema).toBe('poke.setprogress/v1');

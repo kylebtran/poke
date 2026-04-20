@@ -77,10 +77,17 @@ export async function runImport(filePath: string, opts: ImportOptions = {}): Pro
         const condition = r[idx.condition]?.trim() || 'NM';
         const foil = parseBoolCell(r[idx.foil]);
         const priceCell = r[idx.acquired_price]?.trim() ?? '';
-        const acquired_price_cents = priceCell === '' ? undefined : Math.round(Number.parseFloat(priceCell) * 100);
+        const acquired_price_cents =
+          priceCell === '' ? undefined : Math.round(Number.parseFloat(priceCell) * 100);
         const note = r[idx.note]?.trim() || undefined;
         const tagsCell = r[idx.tags]?.trim() ?? '';
-        const tagNames = tagsCell === '' ? [] : tagsCell.split(';').map((t) => t.trim()).filter(Boolean);
+        const tagNames =
+          tagsCell === ''
+            ? []
+            : tagsCell
+                .split(';')
+                .map((t) => t.trim())
+                .filter(Boolean);
 
         // Ensure card is cached.
         if (!getCachedCard(db, cardId)) {

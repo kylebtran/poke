@@ -20,12 +20,7 @@ const savedEnv: Record<string, string | undefined> = {};
 
 beforeEach(() => {
   tmp = mkdtempSync(join(tmpdir(), 'poke-settings-'));
-  for (const k of [
-    'POKE_CONFIG_DIR',
-    'SCRYDEX_API_KEY',
-    'SCRYDEX_TEAM_ID',
-    'POKE_PRICE_TTL',
-  ]) {
+  for (const k of ['POKE_CONFIG_DIR', 'SCRYDEX_API_KEY', 'SCRYDEX_TEAM_ID', 'POKE_PRICE_TTL']) {
     savedEnv[k] = process.env[k];
     delete process.env[k];
   }

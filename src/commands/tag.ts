@@ -106,14 +106,14 @@ export async function runTagStream(opts: TagStreamOptions): Promise<TagStreamRes
         }
       } catch (err) {
         stats.skipped++;
-        stderr.write(
-          `skip ${record.id}: ${err instanceof Error ? err.message : String(err)}\n`,
-        );
+        stderr.write(`skip ${record.id}: ${err instanceof Error ? err.message : String(err)}\n`);
       }
     }
   } finally {
     if (stats.malformed > 0) {
-      stderr.write(`warn: skipped ${stats.malformed} malformed record${stats.malformed === 1 ? '' : 's'}\n`);
+      stderr.write(
+        `warn: skipped ${stats.malformed} malformed record${stats.malformed === 1 ? '' : 's'}\n`,
+      );
     }
     // Summary line, spec §8.
     const verb = mode === 'add' ? 'tagged' : 'untagged';

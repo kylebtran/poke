@@ -60,14 +60,14 @@ describe('runValue with stdin', () => {
   });
 
   it('--group-by set buckets correctly', async () => {
-    const stdin = stream(
-      mk('a', 10, 1, 'sv4'),
-      mk('b', 5, 1, 'sv4'),
-      mk('c', 20, 1, 'sv10_ja'),
-    );
+    const stdin = stream(mk('a', 10, 1, 'sv4'), mk('b', 5, 1, 'sv4'), mk('c', 20, 1, 'sv10_ja'));
     const out = new Buf();
     await runValue({ stdin, out, groupBy: 'set', format: 'ndjson' });
-    const records = out.text().trim().split('\n').map((l) => JSON.parse(l));
+    const records = out
+      .text()
+      .trim()
+      .split('\n')
+      .map((l) => JSON.parse(l));
     expect(records).toHaveLength(2);
     const bySet = Object.fromEntries(records.map((r) => [r.group, r]));
     expect(bySet.sv4.total_cents).toBe(1500);

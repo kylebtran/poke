@@ -72,7 +72,11 @@ describe('poke list', () => {
     const db = seedTwo();
     const out = new Buf();
     await runList({ db, out, format: 'ndjson', language: 'ja' });
-    const records = out.text().trim().split('\n').map((l) => JSON.parse(l));
+    const records = out
+      .text()
+      .trim()
+      .split('\n')
+      .map((l) => JSON.parse(l));
     expect(records).toHaveLength(1);
     expect(records[0].lang).toBe('ja');
   });

@@ -48,8 +48,7 @@ export async function runAdd(cardRef: string, opts: AddOptions = {}): Promise<vo
       putCachedCard(db, card);
     }
 
-    const priceCents =
-      opts.price !== undefined ? Math.round(opts.price * 100) : undefined;
+    const priceCents = opts.price !== undefined ? Math.round(opts.price * 100) : undefined;
     const row = addOwned(db, {
       card_id: id,
       quantity: opts.qty ?? 1,

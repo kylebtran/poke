@@ -55,9 +55,7 @@ describe('poke show — CLI surface', () => {
 
 describe('runShow — programmatic', () => {
   it('writes an NDJSON record for a JA card', async () => {
-    const { fetch } = mockFetch([
-      { match: '/cards/sv10_ja-1', fixture: 'card-sv10_ja-1.json' },
-    ]);
+    const { fetch } = mockFetch([{ match: '/cards/sv10_ja-1', fixture: 'card-sv10_ja-1.json' }]);
     const client = new ScrydexClient({
       api_key: 'k',
       team_id: 't',

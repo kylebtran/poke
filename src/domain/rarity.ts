@@ -7,14 +7,7 @@ import type { DB } from '../db/migrate.js';
  * overrides take precedence.
  */
 
-export type Tier =
-  | 'common'
-  | 'uncommon'
-  | 'rare'
-  | 'ultra'
-  | 'secret'
-  | 'promo'
-  | 'unknown';
+export type Tier = 'common' | 'uncommon' | 'rare' | 'ultra' | 'secret' | 'promo' | 'unknown';
 
 export const ALL_TIERS: readonly Tier[] = [
   'common',

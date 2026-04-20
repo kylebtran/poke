@@ -113,7 +113,8 @@ function compare(actual: unknown, op: Op, value: string): boolean {
     const has = actual.map((v) => String(v)).includes(value);
     if (op === '=') return has;
     if (op === '!=') return !has;
-    if (op === '~') return actual.some((v) => String(v).toLowerCase().includes(value.toLowerCase()));
+    if (op === '~')
+      return actual.some((v) => String(v).toLowerCase().includes(value.toLowerCase()));
     return false;
   }
 

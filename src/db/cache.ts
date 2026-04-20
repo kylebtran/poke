@@ -73,11 +73,7 @@ export function putCachedSet(db: DB, set: PokeSet, fetchedAt: Date = new Date())
 }
 
 /** True if `fetchedAt` (ISO string) is older than `ttlMs` relative to `now`. */
-export function isStale(
-  fetchedAt: string,
-  ttlMs: number,
-  now: Date = new Date(),
-): boolean {
+export function isStale(fetchedAt: string, ttlMs: number, now: Date = new Date()): boolean {
   const t = Date.parse(fetchedAt);
   if (!Number.isFinite(t)) return true;
   return now.getTime() - t > ttlMs;

@@ -34,9 +34,7 @@ describe('emit()', () => {
   it('ndjson mode writes one JSON per line', async () => {
     const out = new Buf();
     await emit(rows, spec, { out, mode: 'ndjson' });
-    expect(out.text()).toBe(
-      '{"name":"Charizard ex","qty":2}\n{"name":"Iron Leaves ex","qty":1}\n',
-    );
+    expect(out.text()).toBe('{"name":"Charizard ex","qty":2}\n{"name":"Iron Leaves ex","qty":1}\n');
   });
 
   it('json-array mode writes a single array', async () => {

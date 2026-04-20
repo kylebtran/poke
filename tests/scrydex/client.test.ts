@@ -36,18 +36,14 @@ describe('ScrydexClient', () => {
   });
 
   it('builds URLs without a language prefix when lang omitted', async () => {
-    const { fetch, calls } = mockFetch([
-      { match: '/cards/sv4-23', fixture: 'card-sv4-23.json' },
-    ]);
+    const { fetch, calls } = mockFetch([{ match: '/cards/sv4-23', fixture: 'card-sv4-23.json' }]);
     const client = makeClient(fetch);
     await client.request(`cards/sv4-23`, { schema: singleResponseSchema(CardSchema) });
     expect(calls[0]!.url).toBe('https://api.example.test/pokemon/v1/cards/sv4-23');
   });
 
   it('appends query parameters', async () => {
-    const { fetch, calls } = mockFetch([
-      { match: '/cards', fixture: 'cards-search-sv4.json' },
-    ]);
+    const { fetch, calls } = mockFetch([{ match: '/cards', fixture: 'cards-search-sv4.json' }]);
     const client = makeClient(fetch);
     await client.request(`cards`, {
       schema: z.object({ data: z.array(z.any()) }).passthrough(),
@@ -88,9 +84,7 @@ describe('ScrydexClient', () => {
   });
 
   it('throws NetworkError on persistent 4xx', async () => {
-    const { fetch } = mockFetch([
-      { match: '/cards/nope', body: 'not found', status: 404 },
-    ]);
+    const { fetch } = mockFetch([{ match: '/cards/nope', body: 'not found', status: 404 }]);
     const client = makeClient(fetch);
     await expect(
       client.request(`cards/nope`, { schema: singleResponseSchema(CardSchema) }),
@@ -108,9 +102,7 @@ describe('ScrydexClient', () => {
   });
 
   it('caches GET when opt-in', async () => {
-    const { fetch, calls } = mockFetch([
-      { match: '/cards/sv4-23', fixture: 'card-sv4-23.json' },
-    ]);
+    const { fetch, calls } = mockFetch([{ match: '/cards/sv4-23', fixture: 'card-sv4-23.json' }]);
     const client = makeClient(fetch);
     const schema = singleResponseSchema(CardSchema);
     await client.request(`cards/sv4-23`, { schema, cache: true });
