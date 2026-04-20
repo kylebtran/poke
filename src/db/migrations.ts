@@ -59,6 +59,23 @@ export const MIGRATIONS: Migration[] = [
       );
     `,
   },
+  {
+    version: 2,
+    name: 'collection',
+    sql: `
+      CREATE TABLE IF NOT EXISTS owned_cards (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        card_id TEXT NOT NULL REFERENCES cards(id) ON DELETE RESTRICT,
+        quantity INTEGER NOT NULL CHECK(quantity > 0),
+        condition TEXT NOT NULL DEFAULT 'NM',
+        foil INTEGER NOT NULL DEFAULT 0,
+        acquired_at TEXT NOT NULL,
+        acquired_price_cents INTEGER,
+        note TEXT
+      );
+      CREATE INDEX IF NOT EXISTS idx_owned_card_id ON owned_cards(card_id);
+    `,
+  },
 ];
 
 export const CURRENT_VERSION = MIGRATIONS[MIGRATIONS.length - 1]!.version;

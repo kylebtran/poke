@@ -7,6 +7,9 @@ import { exitCodeFor, PokeError } from '../errors.js';
 import { registerConfigCommand } from '../commands/config.js';
 import { registerInitCommand } from '../commands/init.js';
 import { registerShowCommand } from '../commands/show.js';
+import { registerAddCommand } from '../commands/add.js';
+import { registerRemoveCommand } from '../commands/remove.js';
+import { registerListCommand } from '../commands/list.js';
 
 function readPackageVersion(): string {
   try {
@@ -46,6 +49,9 @@ async function main(): Promise<void> {
   registerConfigCommand(program);
   registerInitCommand(program);
   registerShowCommand(program);
+  registerAddCommand(program);
+  registerRemoveCommand(program);
+  registerListCommand(program);
   try {
     await program.parseAsync(process.argv);
   } catch (err) {
