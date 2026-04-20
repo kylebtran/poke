@@ -1,0 +1,84 @@
+#!/usr/bin/env node
+import { Command } from 'commander';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
+import { exitCodeFor, PokeError } from '../errors.js';
+
+function readPackageVersion(): string {
+  try {
+    // dist/bin/poke.js → ../../package.json
+    const here = dirname(fileURLToPath(import.meta.url));
+    const pkgPath = join(here, '..', '..', 'package.json');
+    const pkg = JSON.parse(readFileSync(pkgPath, 'utf8')) as { version?: string };
+    return pkg.version ?? '0.0.0';
+  } catch {
+    return '0.0.0';
+  }
+}
+
+export function buildProgram(): Command {
+  const program = new Command();
+  program
+    .name('poke')
+    .description('CLI for international Pokémon card collections (Scrydex-backed).')
+    .version(readPackageVersion(), '-v, --version', 'print version');
+
+  // Global flags. Commander makes these available via program.opts().
+  program
+    .option('--format <mode>', 'output format: table|ndjson')
+    .option('--json', 'emit a single JSON array wrapping the full result set')
+    .option('--no-color', 'disable color output')
+    .option('--debug', 'print stack traces on error');
+
+  return program;
+}
+
+function shouldShowStack(argv: readonly string[]): boolean {
+  return argv.includes('--debug') || process.env.POKE_DEBUG === '1';
+}
+
+async function main(): Promise<void> {
+  const program = buildProgram();
+  // Commands attach themselves in later phases via registerCommands().
+  // For phase 0 we only wire --version/--help.
+  try {
+    await program.parseAsync(process.argv);
+  } catch (err) {
+    handleTopLevelError(err);
+  }
+}
+
+function handleTopLevelError(err: unknown): never {
+  const debug = shouldShowStack(process.argv);
+  if (err instanceof PokeError) {
+    process.stderr.write(`error: ${err.message}\n`);
+    if (err.hint) process.stderr.write(`hint: ${err.hint}\n`);
+    if (debug && err.stack) process.stderr.write(err.stack + '\n');
+    process.exit(exitCodeFor(err));
+  }
+  if (err instanceof Error) {
+    process.stderr.write(`error: ${err.message}\n`);
+    if (debug && err.stack) process.stderr.write(err.stack + '\n');
+    process.exit(1);
+  }
+  process.stderr.write(`error: ${String(err)}\n`);
+  process.exit(1);
+}
+
+// Only invoke main() when this file is the entry point (supports both
+// `poke` bin invocation and importing in tests).
+const isMain = (() => {
+  if (!import.meta.url.startsWith('file:')) return false;
+  try {
+    const thisFile = fileURLToPath(import.meta.url);
+    const argv1 = process.argv[1];
+    return argv1 !== undefined && thisFile === argv1;
+  } catch {
+    return false;
+  }
+})();
+
+if (isMain) {
+  main();
+}

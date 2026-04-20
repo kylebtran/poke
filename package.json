@@ -1,0 +1,49 @@
+{
+  "name": "poke-cli",
+  "version": "0.0.0",
+  "description": "CLI for international Pokémon card collections (Scrydex-backed).",
+  "type": "module",
+  "bin": {
+    "poke": "dist/bin/poke.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc -p .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:live": "vitest run --project live",
+    "format": "prettier -w .",
+    "lint": "prettier -c ."
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "pokemon",
+    "cli",
+    "scrydex",
+    "tcg",
+    "collection"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "better-sqlite3": "^12.9.0",
+    "cli-table3": "^0.6.5",
+    "commander": "^14.0.3",
+    "ora": "^9.3.0",
+    "picocolors": "^1.1.1",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^25.6.0",
+    "prettier": "^3.8.3",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.4"
+  }
+}
