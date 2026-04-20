@@ -1,0 +1,25 @@
+{
+  "data": {
+    "id": "sv4-23",
+    "name": "Charizard ex",
+    "number": "23",
+    "rarity": "Double Rare",
+    "artist": "PLANETA Mochizuki",
+    "language_code": "en",
+    "set": {
+      "id": "sv4",
+      "name": "Paradox Rift",
+      "series": "Scarlet & Violet",
+      "language_code": "en"
+    },
+    "prices": {
+      "market": 12.34,
+      "low": 9.0,
+      "mid": 11.5,
+      "high": 18.0,
+      "currency": "USD",
+      "source": "tcgplayer",
+      "updated_at": "2026-04-15T10:00:00Z"
+    }
+  }
+}

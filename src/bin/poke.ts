@@ -6,6 +6,7 @@ import { dirname, join } from 'node:path';
 import { exitCodeFor, PokeError } from '../errors.js';
 import { registerConfigCommand } from '../commands/config.js';
 import { registerInitCommand } from '../commands/init.js';
+import { registerShowCommand } from '../commands/show.js';
 
 function readPackageVersion(): string {
   try {
@@ -44,6 +45,7 @@ async function main(): Promise<void> {
   const program = buildProgram();
   registerConfigCommand(program);
   registerInitCommand(program);
+  registerShowCommand(program);
   try {
     await program.parseAsync(process.argv);
   } catch (err) {

@@ -1,0 +1,22 @@
+{
+  "data": {
+    "id": "sv10_ja-1",
+    "name": "クヌギダマ",
+    "name_en": "Pineco",
+    "number": "1",
+    "rarity": "通常",
+    "rarity_en": "Common",
+    "artist": "YASHIRO Nanaco",
+    "language_code": "ja",
+    "set": {
+      "id": "sv10_ja",
+      "name": "Mega Brave",
+      "series": "Scarlet & Violet",
+      "language_code": "ja"
+    },
+    "images": {
+      "small": "https://example.test/sv10_ja-1-small.png",
+      "large": "https://example.test/sv10_ja-1-large.png"
+    }
+  }
+}

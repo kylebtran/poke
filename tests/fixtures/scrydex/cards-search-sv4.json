@@ -1,0 +1,36 @@
+{
+  "data": [
+    {
+      "id": "sv4-23",
+      "name": "Charizard ex",
+      "number": "23",
+      "rarity": "Double Rare",
+      "language_code": "en",
+      "set": { "id": "sv4", "name": "Paradox Rift", "language_code": "en" },
+      "prices": {
+        "market": 12.34,
+        "low": 9.0,
+        "mid": 11.5,
+        "high": 18.0,
+        "currency": "USD",
+        "source": "tcgplayer"
+      }
+    },
+    {
+      "id": "sv4-199",
+      "name": "Iron Leaves ex",
+      "number": "199",
+      "rarity": "Special Illustration Rare",
+      "language_code": "en",
+      "set": { "id": "sv4", "name": "Paradox Rift", "language_code": "en" },
+      "prices": {
+        "market": 55.0,
+        "currency": "USD",
+        "source": "tcgplayer"
+      }
+    }
+  ],
+  "total_count": 2,
+  "page": 1,
+  "page_size": 50
+}
