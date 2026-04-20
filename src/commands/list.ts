@@ -8,6 +8,7 @@ import type { Card } from '../scrydex/schemas.js';
 import { ScrydexClient } from '../scrydex/client.js';
 import { requireAuth } from '../config/settings.js';
 import { ensurePricesFresh, snapshotToRecordPrice } from '../scrydex/prices.js';
+import { tagsForOwnedIds } from '../db/tags.js';
 
 export interface ListOptions extends ListFilters {
   withPrices?: boolean;
@@ -42,6 +43,13 @@ export async function runList(opts: ListOptions = {}): Promise<void> {
     if (opts.tag) filters.tag = opts.tag;
     const rows = listOwned(db, filters);
     const records = rows.map(toRecord);
+    // Populate tags in a single round-trip.
+    const tagMap = tagsForOwnedIds(db, rows.map((r) => r.id));
+    for (const rec of records) {
+      if (rec.owned?.owned_id !== undefined) {
+        rec.owned.tags = tagMap.get(rec.owned.owned_id) ?? [];
+      }
+    }
 
     if (opts.withPrices && records.length > 0) {
       const ids = Array.from(new Set(records.map((r) => r.id)));

@@ -76,6 +76,23 @@ export const MIGRATIONS: Migration[] = [
       CREATE INDEX IF NOT EXISTS idx_owned_card_id ON owned_cards(card_id);
     `,
   },
+  {
+    version: 3,
+    name: 'tags',
+    sql: `
+      CREATE TABLE IF NOT EXISTS tags (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL UNIQUE
+      );
+
+      CREATE TABLE IF NOT EXISTS owned_tags (
+        owned_id INTEGER NOT NULL REFERENCES owned_cards(id) ON DELETE CASCADE,
+        tag_id INTEGER NOT NULL REFERENCES tags(id) ON DELETE CASCADE,
+        PRIMARY KEY (owned_id, tag_id)
+      );
+      CREATE INDEX IF NOT EXISTS idx_owned_tags_tag ON owned_tags(tag_id);
+    `,
+  },
 ];
 
 export const CURRENT_VERSION = MIGRATIONS[MIGRATIONS.length - 1]!.version;
