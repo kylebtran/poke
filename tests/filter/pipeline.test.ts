@@ -1,5 +1,8 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { Readable, Writable } from 'node:stream';
+import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { runFilter } from '../../src/commands/filter.js';
 import { SCHEMA_ID, type CardRecord } from '../../src/domain/card.js';
 
@@ -37,12 +40,20 @@ function stream(...items: unknown[]): Readable {
   return Readable.from(Buffer.from(lines + '\n'));
 }
 
+function inputs(...items: unknown[]) {
+  return [{ label: '<test>', stream: stream(...items) }];
+}
+
 describe('runFilter stdin pipeline', () => {
   it('keeps matching records and drops others', async () => {
-    const stdin = stream(mk('secret', 'a'), mk('rare', 'b'), mk('secret', 'c'));
     const out = new Buf();
     const stderr = new Buf();
-    const stats = await runFilter('tier=secret', { stdin, out, stderr, format: 'ndjson' });
+    const stats = await runFilter('tier=secret', {
+      inputs: inputs(mk('secret', 'a'), mk('rare', 'b'), mk('secret', 'c')),
+      out,
+      stderr,
+      format: 'ndjson',
+    });
     expect(stats.kept).toBe(2);
     expect(stats.dropped).toBe(1);
     const lines = out.text().trim().split('\n');
@@ -51,22 +62,95 @@ describe('runFilter stdin pipeline', () => {
   });
 
   it('warns once for malformed lines and continues', async () => {
-    const stdin = stream('not-json', mk('rare', 'b'), '{"noschema": true}');
     const out = new Buf();
     const stderr = new Buf();
-    const stats = await runFilter('tier=rare', { stdin, out, stderr, format: 'ndjson' });
+    const stats = await runFilter('tier=rare', {
+      inputs: inputs('not-json', mk('rare', 'b'), '{"noschema": true}'),
+      out,
+      stderr,
+      format: 'ndjson',
+    });
     expect(stats.kept).toBe(1);
     expect(stats.malformed).toBe(2);
     expect(stderr.text()).toContain('skipped 2 malformed');
-    // Exit status is 0 — stream degradation is not a crash.
   });
 
   it('value alias filters correctly', async () => {
-    // price 10 × quantity 1 = 10; predicate "value>=10" keeps both.
-    const stdin = stream(mk('rare', 'a'), mk('rare', 'b'));
     const out = new Buf();
     const stderr = new Buf();
-    const stats = await runFilter('value>=10', { stdin, out, stderr, format: 'ndjson' });
+    const stats = await runFilter('value>=10', {
+      inputs: inputs(mk('rare', 'a'), mk('rare', 'b')),
+      out,
+      stderr,
+      format: 'ndjson',
+    });
     expect(stats.kept).toBe(2);
+  });
+});
+
+describe('runFilter file arguments', () => {
+  let tmp: string;
+  beforeEach(() => {
+    tmp = mkdtempSync(join(tmpdir(), 'poke-filter-'));
+  });
+  afterEach(() => {
+    rmSync(tmp, { recursive: true, force: true });
+  });
+
+  it('reads from named files when provided', async () => {
+    const path = join(tmp, 'input.ndjson');
+    writeFileSync(
+      path,
+      [mk('secret', 'a'), mk('rare', 'b'), mk('secret', 'c')]
+        .map((r) => JSON.stringify(r))
+        .join('\n') + '\n',
+    );
+    const out = new Buf();
+    const stderr = new Buf();
+    const stats = await runFilter('tier=secret', {
+      files: [path],
+      out,
+      stderr,
+      format: 'ndjson',
+    });
+    expect(stats.kept).toBe(2);
+    const ids = out
+      .text()
+      .trim()
+      .split('\n')
+      .map((l) => JSON.parse(l).id);
+    expect(ids).toEqual(['a', 'c']);
+  });
+
+  it('concatenates multiple files in order', async () => {
+    const a = join(tmp, 'a.ndjson');
+    const b = join(tmp, 'b.ndjson');
+    writeFileSync(a, JSON.stringify(mk('secret', 'a')) + '\n');
+    writeFileSync(b, JSON.stringify(mk('secret', 'b')) + '\n');
+    const out = new Buf();
+    const stats = await runFilter('tier=secret', {
+      files: [a, b],
+      out,
+      stderr: new Buf(),
+      format: 'ndjson',
+    });
+    expect(stats.kept).toBe(2);
+    const ids = out
+      .text()
+      .trim()
+      .split('\n')
+      .map((l) => JSON.parse(l).id);
+    expect(ids).toEqual(['a', 'b']);
+  });
+
+  it('missing file is a UserError', async () => {
+    await expect(
+      runFilter('tier=secret', {
+        files: [join(tmp, 'does-not-exist.ndjson')],
+        out: new Buf(),
+        stderr: new Buf(),
+        format: 'ndjson',
+      }),
+    ).rejects.toThrow(/no such file|cannot open/i);
   });
 });

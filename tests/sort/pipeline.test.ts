@@ -39,11 +39,19 @@ function stream(...items: CardRecord[]): Readable {
   return Readable.from(Buffer.from(items.map((i) => JSON.stringify(i)).join('\n') + '\n'));
 }
 
+function inputs(...items: CardRecord[]) {
+  return [{ label: '<test>', stream: stream(...items) }];
+}
+
 describe('runSort', () => {
   it('sorts by numeric field ascending', async () => {
-    const stdin = stream(mk('a', 20, 'A'), mk('b', 10, 'B'), mk('c', 30, 'C'));
     const out = new Buf();
-    await runSort({ by: 'price.market', stdin, out, format: 'ndjson' });
+    await runSort({
+      by: 'price.market',
+      inputs: inputs(mk('a', 20, 'A'), mk('b', 10, 'B'), mk('c', 30, 'C')),
+      out,
+      format: 'ndjson',
+    });
     const ids = out
       .text()
       .trim()
@@ -53,9 +61,14 @@ describe('runSort', () => {
   });
 
   it('--desc flips order', async () => {
-    const stdin = stream(mk('a', 20, 'A'), mk('b', 10, 'B'));
     const out = new Buf();
-    await runSort({ by: 'price.market', desc: true, stdin, out, format: 'ndjson' });
+    await runSort({
+      by: 'price.market',
+      desc: true,
+      inputs: inputs(mk('a', 20, 'A'), mk('b', 10, 'B')),
+      out,
+      format: 'ndjson',
+    });
     const ids = out
       .text()
       .trim()
@@ -65,9 +78,13 @@ describe('runSort', () => {
   });
 
   it('puts nulls last in both directions', async () => {
-    const stdin = stream(mk('a', 20, 'A'), mk('b', null, 'B'), mk('c', 10, 'C'));
     const out = new Buf();
-    await runSort({ by: 'price.market', stdin, out, format: 'ndjson' });
+    await runSort({
+      by: 'price.market',
+      inputs: inputs(mk('a', 20, 'A'), mk('b', null, 'B'), mk('c', 10, 'C')),
+      out,
+      format: 'ndjson',
+    });
     const ids = out
       .text()
       .trim()
@@ -77,9 +94,13 @@ describe('runSort', () => {
   });
 
   it('locale-compares strings', async () => {
-    const stdin = stream(mk('a', 10, 'banana'), mk('b', 10, 'apple'));
     const out = new Buf();
-    await runSort({ by: 'name', stdin, out, format: 'ndjson' });
+    await runSort({
+      by: 'name',
+      inputs: inputs(mk('a', 10, 'banana'), mk('b', 10, 'apple')),
+      out,
+      format: 'ndjson',
+    });
     const names = out
       .text()
       .trim()

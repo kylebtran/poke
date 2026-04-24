@@ -51,8 +51,11 @@ describe('runTagStream', () => {
     const lines = records.map((r) => (typeof r === 'string' ? r : JSON.stringify(r))).join('\n');
     return Readable.from(Buffer.from(lines + '\n'));
   }
+  function inputs(records: unknown[]) {
+    return [{ label: '<test>', stream: stream(records) }];
+  }
 
-  it('tags every record read from stdin; reports summary', async () => {
+  it('tags every record read from stream; reports summary', async () => {
     const db = openTestDb();
     putCachedCard(db, card('sv4-1'));
     putCachedCard(db, card('sv4-2'));
@@ -62,7 +65,7 @@ describe('runTagStream', () => {
     const stderr = new Buf();
     const stats = await runTagStream({
       add: 'grail',
-      stdin: stream(listed),
+      inputs: inputs(listed),
       stderr,
       db,
     });
@@ -78,7 +81,6 @@ describe('runTagStream', () => {
     putCachedCard(db, card('sv4-1'));
     addOwned(db, { card_id: 'sv4-1' });
     const listed = listOwned(db).map(toRecord);
-    // Add an NDJSON line whose card_id has no owned rows.
     const orphan = {
       _schema: 'poke.card/v1',
       id: 'sv4-999',
@@ -89,7 +91,7 @@ describe('runTagStream', () => {
     const stderr = new Buf();
     const stats = await runTagStream({
       add: 'grail',
-      stdin: stream([...listed, orphan]),
+      inputs: inputs([...listed, orphan]),
       stderr,
       db,
     });
@@ -107,7 +109,7 @@ describe('runTagStream', () => {
     const stderr = new Buf();
     const stats = await runTagStream({
       add: 'grail',
-      stdin: stream(['not-json', ...listed, '{"not":"a record"}']),
+      inputs: inputs(['not-json', ...listed, '{"not":"a record"}']),
       stderr,
       db,
     });

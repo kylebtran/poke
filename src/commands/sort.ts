@@ -1,17 +1,17 @@
 import { Command } from 'commander';
-import { Readable, Writable } from 'node:stream';
-import { readLines } from '../io/ndjson.js';
-import { parseLine } from '../io/record.js';
+import { Writable } from 'node:stream';
 import { resolveField } from '../filter/predicate.js';
 import { emit, type TableSpec } from '../io/emit.js';
 import { LIST_SPEC } from './list.js';
 import type { CardRecord } from '../domain/card.js';
 import { UserError } from '../errors.js';
+import { resolveInputs, readCardRecords, type InputSource } from '../io/input.js';
 
 export interface SortOptions {
   by: string;
   desc?: boolean;
-  stdin?: Readable;
+  inputs?: readonly InputSource[];
+  files?: readonly string[];
   out?: NodeJS.WritableStream | Writable;
   stderr?: NodeJS.WritableStream;
   format?: string;
@@ -20,25 +20,21 @@ export interface SortOptions {
 }
 
 /**
- * `poke sort --by <field> [--desc]` — stdin → stdout.
+ * `poke sort --by <field> [--desc] [FILE...]` — NDJSON in, sorted NDJSON out.
  *
- * Sort is buffering (all records in memory); that's fine for a personal
- * collection which is ~thousands at most. Nulls/undefineds sort last
- * in both directions.
+ * Buffers the entire stream (sort needs all records); that's fine for a
+ * personal collection. Nulls/undefineds sort last in both directions.
+ *
+ * Files are read in order, or stdin if none (`-` also means stdin).
  */
 export async function runSort(opts: SortOptions): Promise<void> {
   if (!opts.by) throw new UserError('--by <field> required');
-  const stdin = opts.stdin ?? process.stdin;
+  const sources = opts.inputs ?? resolveInputs(opts.files ?? []);
   const stderr = opts.stderr ?? process.stderr;
-  let malformed = 0;
+  const stats = { malformed: 0 };
 
   const buffer: CardRecord[] = [];
-  for await (const line of readLines(stdin)) {
-    const record = parseLine(line);
-    if (!record) {
-      malformed++;
-      continue;
-    }
+  for await (const record of readCardRecords(sources, stats)) {
     buffer.push(record);
   }
 
@@ -53,8 +49,10 @@ export async function runSort(opts: SortOptions): Promise<void> {
     noColor: opts.noColor,
   });
 
-  if (malformed > 0) {
-    stderr.write(`warn: skipped ${malformed} malformed record${malformed === 1 ? '' : 's'}\n`);
+  if (stats.malformed > 0) {
+    stderr.write(
+      `warn: skipped ${stats.malformed} malformed record${stats.malformed === 1 ? '' : 's'}\n`,
+    );
   }
 }
 
@@ -86,15 +84,18 @@ function numberize(v: unknown): number | undefined {
 
 export function registerSortCommand(program: Command): void {
   program
-    .command('sort')
-    .description('sort a stream by a record field (nulls last)')
+    .command('sort [files...]')
+    .description(
+      "sort a stream by a record field (nulls last); reads stdin when no files given, '-' for stdin",
+    )
     .requiredOption('--by <field>', 'field path (e.g. name, price.market)')
     .option('--desc', 'descending order', false)
-    .action(async (opts: { by: string; desc?: boolean }, cmd: Command) => {
+    .action(async (files: string[], opts: { by: string; desc?: boolean }, cmd: Command) => {
       const globals = cmd.parent?.opts() ?? {};
       await runSort({
         by: opts.by,
         desc: opts.desc ?? false,
+        files,
         format: globals.format as string | undefined,
         json: globals.json as boolean | undefined,
         noColor: globals.color === false,
