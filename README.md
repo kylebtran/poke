@@ -27,35 +27,41 @@ poke add sv4-23 --qty 2 --note "first charizard"
 # See your collection
 poke list
 
-# Pipe-first, always
-poke list --tag investment | poke value --total
-poke list --set sv4 | poke filter 'value>50'
-poke list | poke sort --by value --desc | head -n 10
+# Pipe-first, always — list is the source, value/filter/sort are reducers
+poke list --with-prices | poke value
+poke list --with-prices | poke value --group-by set
+poke list --set sv4 --with-prices | poke filter 'value>50'
+poke list --with-prices | poke sort --by value --desc | head -n 10
 poke list --set sv10_ja | poke filter 'tier=secret' | poke tag --add grail
+
+# Consumer commands also take file arguments (like grep, sort, wc)
+poke list --with-prices > snapshot.ndjson
+poke filter 'value>50' snapshot.ndjson
+poke value --group-by set snapshot.ndjson
 ```
 
 For idiomatic pipe chains: `poke help pipes`.
 
 ## Commands
 
-| Command                                             | Purpose                                                                  |
-| --------------------------------------------------- | ------------------------------------------------------------------------ |
-| `poke init`                                         | First-run bootstrap (API key, team id, DB).                              |
-| `poke config get\|set\|list`                        | Read/write settings.                                                     |
-| `poke add <card-id>`                                | Add cards. Accepts `<set>:<number>` sugar.                               |
-| `poke remove <card-id>`                             | Remove (or `--all`).                                                     |
-| `poke list`                                         | List owned. Filters: `--set --lang --tag --rarity --tier --with-prices`. |
-| `poke show <card-id>`                               | Single card detail.                                                      |
-| `poke search <q>`                                   | Remote Scrydex search (query forwarded verbatim).                        |
-| `poke sets`                                         | List sets (`--owned` to filter).                                         |
-| `poke set <set-id>`                                 | Per-rarity completion for one set.                                       |
-| `poke progress --set <id>`                          | Completion summary, `--by rarity\|tier`.                                 |
-| `poke filter <predicate>`                           | Stream filter (`value>50`, `tier=secret`, etc.).                         |
-| `poke sort --by <field>`                            | Sort stream (nulls last).                                                |
-| `poke value`                                        | Sum prices of a stream or the full collection.                           |
-| `poke tag <card-id> <tag>` / `poke tag --add <tag>` | Arg or stream mode.                                                      |
-| `poke refresh --prices --metadata [--set S]`        | Force cache refresh.                                                     |
-| `poke import <file.csv>` / `poke export [file.csv]` | CSV bulk.                                                                |
+| Command                                                       | Purpose                                                                                 |
+| ------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| `poke init`                                                   | First-run bootstrap (API key, team id, DB).                                             |
+| `poke config get\|set\|list`                                  | Read/write settings.                                                                    |
+| `poke add <card-id>`                                          | Add cards. Accepts `<set>:<number>` sugar.                                              |
+| `poke remove <card-id>`                                       | Remove (or `--all`).                                                                    |
+| `poke list`                                                   | List owned. Filters: `--set --lang --tag --rarity --tier --with-prices`.                |
+| `poke show <card-id>`                                         | Single card detail.                                                                     |
+| `poke search <q>`                                             | Remote Scrydex search (query forwarded verbatim).                                       |
+| `poke sets`                                                   | List sets (`--owned` to filter).                                                        |
+| `poke set <set-id>`                                           | Per-rarity completion for one set.                                                      |
+| `poke progress --set <id>`                                    | Completion summary, `--by rarity\|tier`.                                                |
+| `poke filter <predicate> [FILE...]`                           | Stream filter (`value>50`, `tier=secret`, etc.).                                        |
+| `poke sort --by <field> [FILE...]`                            | Sort stream (nulls last).                                                               |
+| `poke value [FILE...]`                                        | Sum prices of a record stream (pipe `poke list --with-prices \| poke value` for total). |
+| `poke tag <card-id> <tag>` / `poke tag --add <tag> [FILE...]` | Arg or stream mode.                                                                     |
+| `poke refresh --prices --metadata [--set S]`                  | Force cache refresh.                                                                    |
+| `poke import <file.csv>` / `poke export [file.csv]`           | CSV bulk.                                                                               |
 
 ## Format / color
 

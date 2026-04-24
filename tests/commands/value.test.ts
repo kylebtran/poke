@@ -1,13 +1,10 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { Readable, Writable } from 'node:stream';
-import { openTestDb } from '../helpers/db.js';
-import { mockFetch } from '../helpers/mockFetch.js';
-import { ScrydexClient } from '../../src/scrydex/client.js';
-import { putCachedCard } from '../../src/db/cache.js';
-import { addOwned } from '../../src/db/collection.js';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { runValue } from '../../src/commands/value.js';
 import { SCHEMA_ID, type CardRecord } from '../../src/domain/card.js';
-import type { Card } from '../../src/scrydex/schemas.js';
 
 class Buf extends Writable {
   chunks: string[] = [];
@@ -46,13 +43,19 @@ function stream(...items: CardRecord[]): Readable {
   return Readable.from(Buffer.from(items.map((i) => JSON.stringify(i)).join('\n') + '\n'));
 }
 
-describe('runValue with stdin', () => {
+function inputs(...items: CardRecord[]) {
+  return [{ label: '<test>', stream: stream(...items) }];
+}
+
+describe('runValue pure reducer', () => {
   it('sums market * quantity, counts unavailable', async () => {
-    const stdin = stream(mk('a', 10, 2), mk('b', 5, 1), mk('c', null, 3));
     const out = new Buf();
-    await runValue({ stdin, out, format: 'ndjson' });
-    const line = out.text().trim();
-    const record = JSON.parse(line);
+    await runValue({
+      inputs: inputs(mk('a', 10, 2), mk('b', 5, 1), mk('c', null, 3)),
+      out,
+      format: 'ndjson',
+    });
+    const record = JSON.parse(out.text().trim());
     expect(record._schema).toBe('poke.value/v1');
     expect(record.total_cents).toBe(10 * 100 * 2 + 5 * 100 * 1);
     expect(record.unavailable).toBe(1);
@@ -60,9 +63,13 @@ describe('runValue with stdin', () => {
   });
 
   it('--group-by set buckets correctly', async () => {
-    const stdin = stream(mk('a', 10, 1, 'sv4'), mk('b', 5, 1, 'sv4'), mk('c', 20, 1, 'sv10_ja'));
     const out = new Buf();
-    await runValue({ stdin, out, groupBy: 'set', format: 'ndjson' });
+    await runValue({
+      inputs: inputs(mk('a', 10, 1, 'sv4'), mk('b', 5, 1, 'sv4'), mk('c', 20, 1, 'sv10_ja')),
+      out,
+      groupBy: 'set',
+      format: 'ndjson',
+    });
     const records = out
       .text()
       .trim()
@@ -73,53 +80,34 @@ describe('runValue with stdin', () => {
     expect(bySet.sv4.total_cents).toBe(1500);
     expect(bySet.sv10_ja.total_cents).toBe(2000);
   });
+
+  it('empty stream yields $0 total with 0 cards', async () => {
+    const out = new Buf();
+    await runValue({ inputs: inputs(), out, format: 'ndjson' });
+    const record = JSON.parse(out.text().trim());
+    expect(record.total_cents).toBe(0);
+    expect(record.n_cards).toBe(0);
+  });
 });
 
-function card(id: string, market: number): Card {
-  return {
-    id,
-    name: id,
-    number: id.split('-').slice(-1).join(''),
-    language_code: 'en',
-    set: { id: 'sv4', language_code: 'en' },
-    prices: { market, currency: 'USD', source: 'tcgplayer' },
-  };
-}
+describe('runValue file arguments', () => {
+  let tmp: string;
+  beforeEach(() => {
+    tmp = mkdtempSync(join(tmpdir(), 'poke-value-'));
+  });
+  afterEach(() => {
+    rmSync(tmp, { recursive: true, force: true });
+  });
 
-describe('runValue with no stdin (reads DB)', () => {
-  it('values the full collection via auto-refresh', async () => {
-    const db = openTestDb();
-    putCachedCard(db, card('sv4-1', 10));
-    addOwned(db, { card_id: 'sv4-1', quantity: 2 });
-    const { fetch, calls } = mockFetch([
-      {
-        match: '/cards?q=',
-        body: { data: [card('sv4-1', 10)] },
-      },
-    ]);
-    const client = new ScrydexClient({
-      api_key: 'k',
-      team_id: 't',
-      fetch,
-      baseUrl: 'https://api.example.test/pokemon/v1/',
-    });
+  it('reads records from a named file', async () => {
+    const path = join(tmp, 'input.ndjson');
+    writeFileSync(
+      path,
+      [mk('a', 10, 2), mk('b', 5, 1)].map((r) => JSON.stringify(r)).join('\n') + '\n',
+    );
     const out = new Buf();
-    // Force `collect` into the DB path by setting process.stdin.isTTY=true
-    // effectively — we pass `stdin: undefined` and rely on the fact that
-    // vitest runs without a TTY. Actually under vitest process.stdin has
-    // isTTY undefined, so the code path auto-picks "readStdinRecords".
-    // The cleanest fix is to hand the command an empty stdin placeholder
-    // NOT via opts.stdin (which would route to readStdinRecords). Instead
-    // we monkey-patch process.stdin.isTTY for this test.
-    const origTTY = process.stdin.isTTY;
-    Object.defineProperty(process.stdin, 'isTTY', { value: true, configurable: true });
-    try {
-      await runValue({ db, client, out, format: 'ndjson' });
-    } finally {
-      Object.defineProperty(process.stdin, 'isTTY', { value: origTTY, configurable: true });
-    }
+    await runValue({ files: [path], out, format: 'ndjson' });
     const record = JSON.parse(out.text().trim());
-    expect(record.total_cents).toBe(2000); // $10 * 2
-    expect(calls).toHaveLength(1);
+    expect(record.total_cents).toBe(2500);
   });
 });

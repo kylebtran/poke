@@ -9,20 +9,31 @@ on a pipe and a colored table on a TTY. Compose commands with | .
 
 Common chains:
 
+  # Value of your whole collection (list is the source, value is the reducer)
+  poke list --with-prices | poke value
+
+  # Group the collection's value by set
+  poke list --with-prices | poke value --group-by set
+
   # Value of everything tagged 'investment'
-  poke list --tag investment | poke value --total
+  poke list --tag investment --with-prices | poke value
 
   # Single-set cards worth more than $50
-  poke list --set sv4 | poke filter 'value>50'
+  poke list --set sv4 --with-prices | poke filter 'value>50'
 
   # Top 10 most valuable cards you own
-  poke list | poke sort --by value --desc | head -n 10
+  poke list --with-prices | poke sort --by value --desc | head -n 10
 
   # Tag every secret rare in a JA set as 'grail'
   poke list --set sv10_ja | poke filter 'tier=secret' | poke tag --add grail
 
-  # Case-insensitive name search, then show detail
-  poke list | poke filter 'name~charizard' | head -n 1 | poke show
+  # Work with saved NDJSON files (filter/sort/value/tag all take FILE args)
+  poke list --with-prices > snapshot.ndjson
+  poke filter 'value>50' snapshot.ndjson
+  poke value --group-by set snapshot.ndjson
+
+  # Mix files and stdin ('-' means stdin)
+  cat yesterday.ndjson | poke sort --by value --desc - today.ndjson
 
 Predicate syntax (poke filter):
 
