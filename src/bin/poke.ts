@@ -56,7 +56,31 @@ function shouldShowStack(argv: readonly string[]): boolean {
   return argv.includes('--debug') || process.env.POKE_DEBUG === '1';
 }
 
+/**
+ * Classic Unix pipe semantics: when a downstream consumer (`head`, `less`)
+ * closes its stdin, our next write throws `EPIPE`. That's not an error —
+ * it's the normal signal to stop. Suppress the throw and exit 0, matching
+ * how `sort`, `find`, `cat` behave on a closed pipe.
+ *
+ * We install these once, before commander starts writing anything. The
+ * handler runs on both `process.stdout` and `process.stderr` since either
+ * could be piped (`poke refresh 2>&1 | head`).
+ */
+function installPipeHandlers(): void {
+  const onPipeError = (err: NodeJS.ErrnoException): void => {
+    if (err && err.code === 'EPIPE') {
+      // Stop writing immediately; exit before the next tick can throw.
+      process.exit(0);
+    }
+    // Re-surface anything that isn't EPIPE.
+    throw err;
+  };
+  process.stdout.on('error', onPipeError);
+  process.stderr.on('error', onPipeError);
+}
+
 async function main(): Promise<void> {
+  installPipeHandlers();
   const program = buildProgram();
   registerConfigCommand(program);
   registerInitCommand(program);
@@ -84,6 +108,8 @@ async function main(): Promise<void> {
 }
 
 function handleTopLevelError(err: unknown): never {
+  // EPIPE from a closed downstream is not a failure. See installPipeHandlers.
+  if (isEpipe(err)) process.exit(0);
   const debug = shouldShowStack(process.argv);
   if (err instanceof PokeError) {
     process.stderr.write(`error: ${err.message}\n`);
@@ -98,6 +124,15 @@ function handleTopLevelError(err: unknown): never {
   }
   process.stderr.write(`error: ${String(err)}\n`);
   process.exit(1);
+}
+
+function isEpipe(err: unknown): boolean {
+  return (
+    err !== null &&
+    typeof err === 'object' &&
+    'code' in err &&
+    (err as { code?: unknown }).code === 'EPIPE'
+  );
 }
 
 // Only invoke main() when this file is the entry point (supports both
